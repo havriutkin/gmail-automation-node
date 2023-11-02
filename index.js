@@ -9,6 +9,9 @@ const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
 
+// List of senders to track
+const senders = ['ovlodaet@gmail.com'];
+
 /**
  * Reads previously authorized credentials from the save file.
  *
@@ -83,4 +86,23 @@ async function listLabels(auth) {
   });
 }
 
-authorize().then(listLabels).catch(console.error);
+async function getMessages(auth){
+    const gmail = google.gmail({version: 'v1', auth});
+    const result = []
+
+    for (let sender of senders){
+        const response = await gmail.users.messages.list({
+            userId: 'me',
+            q: `from:${sender} is:unread`,
+        });
+
+        result.push({
+            from: sender,
+            amount: response.data.messages.length
+        });
+    }
+    console.log(result);
+    return result;
+}
+
+authorize().then(getMessages).catch(console.error);
