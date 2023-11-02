@@ -19,6 +19,7 @@
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "axios": "^1.6.0",
-    "googleapis": "^105.0.0"
+    "googleapis": "^105.0.0",
+    "node-notifier": "^10.0.1"
   }
 }

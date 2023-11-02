@@ -3,6 +3,7 @@ const path = require('path');
 const process = require('process');
 const {authenticate} = require('@google-cloud/local-auth');
 const {google} = require('googleapis');
+const notifier = require('node-notifier');
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
@@ -66,26 +67,11 @@ async function authorize() {
 }
 
 /**
- * Lists the labels in the user's account.
- *
+ * Gets amount of unread messages from tracked senders
+ * 
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @returns {List<Object} ([{from: , amount: }, ])
  */
-async function listLabels(auth) {
-  const gmail = google.gmail({version: 'v1', auth});
-  const res = await gmail.users.labels.list({
-    userId: 'me',
-  });
-  const labels = res.data.labels;
-  if (!labels || labels.length === 0) {
-    console.log('No labels found.');
-    return;
-  }
-  console.log('Labels:');
-  labels.forEach((label) => {
-    console.log(`- ${label.name}`);
-  });
-}
-
 async function getMessages(auth){
     const gmail = google.gmail({version: 'v1', auth});
     const result = []
@@ -101,8 +87,32 @@ async function getMessages(auth){
             amount: response.data.messages.length
         });
     }
-    console.log(result);
     return result;
 }
 
-authorize().then(getMessages).catch(console.error);
+function sendNotifications(messages){
+    messages.forEach(({from, amount}) => {
+        notifier.notify({
+            title: `You recieved new message from ${from}`,
+            message: `You have ${amount} unread questions from ${from}`,
+            icon: path.join(__dirname, 'logo.png'),
+            contentImage: path.join(__dirname, 'logo.png')
+        })
+    });
+}
+
+function daemon(){
+    authorize()
+    .then(getMessages)
+        .then(sendNotifications)
+    .catch(console.error);
+}
+
+daemon();
+setInterval(daemon, 1000 * 60 * 30);
+
+/**
+ * TODO: 
+ *  Fix problem with Icon in notifier, 
+ *  Implement onClick function that redirects user to mailbox
+ */
